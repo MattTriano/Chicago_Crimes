@@ -38,7 +38,7 @@ Thumbs.db
 
 # All files in data
 ###################
-data/
+data/big/
 
 *.PNG
 *.pkl
