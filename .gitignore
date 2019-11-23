@@ -41,7 +41,7 @@ Thumbs.db
 data/big/
 data/
 data_raw/
-analysis/
+.ipynb_checkpoints/
 
 *.PNG
 *.pkl
