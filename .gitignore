@@ -41,6 +41,7 @@ Thumbs.db
 data/big/
 data/
 data_raw/
+shapefiles/
 .ipynb_checkpoints/
 
 *.PNG
