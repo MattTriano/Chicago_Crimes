@@ -62,16 +62,25 @@ def engineer_hour_of_day_feature(df: pd.DataFrame, date_col: str, label: str = "
 
 def engineer_day_of_week_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
     df[f"{label}Weekday"] = df[date_col].dt.dayofweek
+    weekday_map = {0: "MON", 1: "TUE", 2: "WED", 3: "THUR", 4: "FRI", 5: "SAT", 6: "SUN"}
+    weekdays = list(weekday_map.values())
+    weekday_categories = CategoricalDtype(categories=weekdays, ordered=True)
+    df[f"{label}Weekday"] = df[f"{label}Weekday"].map(weekday_map).astype(weekday_categories)
     return df
 
 def engineer_day_of_year_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
     df[f"{label}Day"] = df[date_col].dt.dayofyear
+    days = [i for i in range(1, 367)]
+    day_categories = CategoricalDtype(categories=days, ordered=True)
+    df[f"{label}Day"] = df[f"{label}Day"].astype(day_categories)
     return df
 
 def engineer_week_of_year_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
     df[f"{label}Week"] = df[date_col].dt.isocalendar().week
+    weeks = [i for i in range(1, 54)]
+    week_categories = CategoricalDtype(categories=weeks, ordered=True)
+    df[f"{label}Week"] = df[f"{label}Week"].astype(week_categories)
     return df
-
 
 def engineer_month_of_year_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
     df[f"{label}Month"] = df[date_col].dt.month.astype(str).str.zfill(2)
@@ -79,3 +88,20 @@ def engineer_month_of_year_feature(df: pd.DataFrame, date_col: str, label: str =
     month_categories = CategoricalDtype(categories=months, ordered=True)
     df[f"{label}Month"] = df[f"{label}Month"].astype(month_categories)
     return df
+
+def standardize_categorical_integer_column_values(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
+    df[col_name] = df[col_name].astype("Int16").astype("string").str.zfill(2).astype("category")
+    return df
+
+def drop_columns(df: pd.DataFrame, columns_to_drop: List) -> pd.DataFrame:
+    assert all([col in df.columns for col in columns_to_drop]), "columns_to_drop include missing columns"
+    df = df.drop(columns=columns_to_drop)
+    return df
+
+def coerce_simple_category_columns(df: pd.DataFrame, category_columns: List[str]) -> pd.DataFrame:
+    for category_column in category_columns:
+        df[category_column] = df[category_column].astype("category")
+    return df
+
+
+
