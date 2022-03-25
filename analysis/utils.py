@@ -3,6 +3,7 @@ from typing import Dict, List, Union, Optional
 from urllib.request import urlretrieve
 
 import pandas as pd
+from pandas.api.types import CategoricalDtype
 import geopandas as gpd
 
 
@@ -46,8 +47,35 @@ def extract_file_from_url(
             return pd.read_csv(file_path)
         elif data_format in ["shp", "geojson"]:
             return gpd.read_file(file_path)
-        
+
 def make_point_geometry(df: pd.DataFrame, long_col: str, lat_col: str) -> pd.Series:
     latlong_df = df[[long_col, lat_col]].copy()
     df["geometry"] = pd.Series(map(Point, latlong_df[long_col], latlong_df[lat_col]))
-    return df   
+    return df
+
+def engineer_hour_of_day_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
+    df[f"{label}Hour"] = df[date_col].dt.hour.astype(str).str.zfill(2)
+    hours = [str(i).zfill(2) for i in range(0, 24)]
+    hour_categories = CategoricalDtype(categories=hours, ordered=True)
+    df[f"{label}Hour"] = df[f"{label}Hour"].astype(hour_categories)
+    return df
+
+def engineer_day_of_week_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
+    df[f"{label}Weekday"] = df[date_col].dt.dayofweek
+    return df
+
+def engineer_day_of_year_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
+    df[f"{label}Day"] = df[date_col].dt.dayofyear
+    return df
+
+def engineer_week_of_year_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
+    df[f"{label}Week"] = df[date_col].dt.isocalendar().week
+    return df
+
+
+def engineer_month_of_year_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
+    df[f"{label}Month"] = df[date_col].dt.month.astype(str).str.zfill(2)
+    months = [str(i).zfill(2) for i in range(1, 13)]
+    month_categories = CategoricalDtype(categories=months, ordered=True)
+    df[f"{label}Month"] = df[f"{label}Month"].astype(month_categories)
+    return df
