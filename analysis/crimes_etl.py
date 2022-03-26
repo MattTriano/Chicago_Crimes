@@ -53,3 +53,18 @@ def transform_chicago_crimes_data(crimes_df: pd.DataFrame) -> gpd.GeoDataFrame:
     )
     crimes_gdf = drop_columns(df=crimes_gdf, columns_to_drop=["X Coordinate", "Y Coordinate", "Location"])
     return crimes_gdf
+
+def load_clean_chicago_crimes_data(
+    root_dir: os.path = get_project_root_dir(), force_repull: bool = False,
+    force_remake: bool = False
+) -> gpd.GeoDataFrame:
+    file_name = "Crimes_-_2001_to_present"
+    clean_file_path = os.path.join(root_dir, "data_clean", f"{file_name}.parquet.gzip")
+    if not os.path.isfile(clean_file_path) or force_remake:
+        crimes_gdf = transform_chicago_crimes_data(
+            crimes_df=load_raw_chicago_crimes_data(root_dir=root_dir, force_repull=force_repull)
+        )
+        crimes_gdf.to_parquet(clean_file_path, compression="gzip")
+    else:
+        crimes_gdf = pd.read_parquet(clean_file_path)
+    return crimes_gdf

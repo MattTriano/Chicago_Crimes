@@ -5,6 +5,7 @@ from urllib.request import urlretrieve
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 import geopandas as gpd
+from shapely.geometry import Point
 
 
 def get_project_root_dir() -> os.path:
