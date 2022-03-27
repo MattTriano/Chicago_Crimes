@@ -86,5 +86,5 @@ def load_clean_chicago_crimes_data(
         )
         crimes_gdf.to_parquet(clean_file_path, compression="gzip")
     else:
-        crimes_gdf = pd.read_parquet(clean_file_path)
+        crimes_gdf = gpd.read_parquet(clean_file_path)
     return crimes_gdf
