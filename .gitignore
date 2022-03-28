@@ -42,10 +42,14 @@ data/big/
 data/
 data_raw/
 shapefiles/
-.ipynb_checkpoints/
+*.ipynb_checkpoints/
+*.parquet.gzip
+*.csv
 
 *.PNG
 *.pkl
 *.pdf
 *.pptx
 *.docx
+
+__pycache__
