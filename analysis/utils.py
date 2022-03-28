@@ -161,3 +161,14 @@ def make_api_call_for_socrata_csv_data(api_call: str) -> pd.DataFrame:
         return pd.read_csv(io.StringIO(resp.content.decode("utf-8")))
     else:
         return requests.HTTPError
+
+def read_raw_chicago_police_beats_geodata(root_dir: os.path = get_project_root_dir()) -> gpd.GeoDataFrame:
+    police_beats_gdf = extract_file_from_url(
+        file_path=os.path.join(root_dir, "data_raw", "Chicago_police_beats.geojson"),
+        url="https://data.cityofchicago.org/api/geospatial/aerh-rz74?method=export&format=GeoJSON",
+        data_format="geojson",
+        force_repull=False,
+        return_df=True
+    )
+    police_beats_gdf["beat_num"] = police_beats_gdf["beat_num"].astype("int64")
+    return police_beats_gdf
