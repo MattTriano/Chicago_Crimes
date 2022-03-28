@@ -1,3 +1,4 @@
+import io
 import os
 import re
 from typing import Dict, List, Union, Optional
@@ -5,7 +6,7 @@ from urllib.request import urlretrieve
 
 import geopandas as gpd
 import pandas as pd
-from pandas.api.types import CategoricalDtype
+from pandas.api.types import CategoricalDtype, is_datetime64_any_dtype
 import requests
 from shapely.geometry import Point
 
@@ -57,6 +58,16 @@ def make_point_geometry(df: pd.DataFrame, long_col: str, lat_col: str) -> pd.Ser
     latlong_df = df[[long_col, lat_col]].copy()
     df["geometry"] = pd.Series(map(Point, latlong_df[long_col], latlong_df[lat_col]))
     return df
+
+
+def typeset_datetime_column(dt_series: pd.Series, dt_format: Optional[str]) -> pd.Series:
+    dt_series = dt_series.copy()
+    if not is_datetime64_any_dtype(dt_series):
+        if dt_format is not None:
+            dt_series = pd.to_datetime(dt_series, format=dt_format)
+        else:
+            dt_series = pd.to_datetime(dt_series)
+    return dt_series
 
 
 def engineer_hour_of_day_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
@@ -132,5 +143,13 @@ def get_number_of_results_for_socrata_query(
         if len(counts) > 0:
             result_count = int(counts[0])
             return result_count
+    else:
+        return requests.HTTPError
+
+
+def make_api_call_for_socrata_csv_data(api_call: str) -> pd.DataFrame:
+    resp = requests.get(api_call)
+    if resp.status_code == 200:
+        return pd.read_csv(io.StringIO(resp.content.decode("utf-8")))
     else:
         return requests.HTTPError

@@ -14,6 +14,9 @@ from utils import (
     engineer_month_of_year_feature,
     drop_columns,
     coerce_simple_category_columns,
+    make_api_call_for_socrata_csv_data,
+    get_number_of_results_for_socrata_query,
+    typeset_datetime_column,
 )
 
 
@@ -30,9 +33,13 @@ def load_raw_chicago_crimes_data(
     return crimes_df
 
 
-def transform_chicago_crimes_date_columns(crimes_df: pd.DataFrame) -> pd.DataFrame:
+def transform_chicago_crimes_date_columns(
+    crimes_df: pd.DataFrame, dt_format: str = "%m/%d/%Y %I:%M:%S %p"
+) -> pd.DataFrame:
     for date_col in ["date", "updated_on"]:
-        crimes_df[date_col] = pd.to_datetime(crimes_df[date_col], format="%m/%d/%Y %I:%M:%S %p")
+        crimes_df[date_col] = typeset_datetime_column(
+            dt_series=crimes_df[date_col], dt_format=dt_format
+        )
     return crimes_df
 
 
