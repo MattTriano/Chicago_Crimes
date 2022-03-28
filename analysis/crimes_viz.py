@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+from utils import read_raw_chicago_police_beats_geodata, get_project_root_dir
+
 
 def freq_selector(freq: str = "year"):
     freq = freq.lower()
@@ -16,7 +18,7 @@ def freq_selector(freq: str = "year"):
         return "Y"
 
 
-def validate_crime_col(crime_col: str, crime_df: pd.DataFrame) -> str:
+def validate_crime_col(crime_col: str, crime_descr: str, crime_df: pd.DataFrame) -> str:
     VALID_CRIME_COL_VALUES = ["description", "primary_type"]
     if crime_col not in VALID_CRIME_COL_VALUES:
         if crime_descr in crime_df["description"].unique():
@@ -39,7 +41,7 @@ def make_plot_of_arrest_rate_per_period(
 ) -> None:
     label_descr = crime_descr.title()
 
-    crime_col = validate_crime_col(crime_col=crime_col, crime_df=crime_df)
+    crime_col = validate_crime_col(crime_col=crime_col, crime_descr=crime_descr, crime_df=crime_df)
     if isinstance(crime_descr, list):
         df = crime_df.loc[
             (crime_df[crime_col].isin(crime_descr))
@@ -96,7 +98,7 @@ def make_choropleth_of_crime_counts_per_beat(
     tight: bool = True,
     title_fs: Optional = None,
 ) -> None:
-    crime_col = validate_crime_col(crime_col=crime_col, crime_df=df)
+    crime_col = validate_crime_col(crime_col=crime_col, crime_descr=crime_descr, crime_df=df)
     df = df.loc[
         (df["date"] >= start_date)
         & (df["date"] <= end_date)
@@ -159,7 +161,7 @@ def make_heatmap_of_crime_frequency(
     fig_width: float = 14,
     force_tall_xy: bool = False,
 ) -> None:
-    crime_col = validate_crime_col(crime_col=crime_col, crime_df=df)
+    crime_col = validate_crime_col(crime_col=crime_col, crime_descr=crime_descr, crime_df=df)
     if not force_tall_xy:
         if df[x_ax].nunique() < df[y_ax].nunique():
             temp_ax = x_ax
@@ -195,3 +197,80 @@ def make_heatmap_of_crime_frequency(
         )
     ax.set_title(title, fontsize=fig_width * 1.5)
     plt.tight_layout()
+
+
+def produce_visualizations(
+    crime_descr: str,
+    df: pd.DataFrame,
+    crime_col: str = "description",
+    start_date: str = "2015-01-01",
+    end_date: str = "Today",
+    more_crime_descr="",
+    qmin: int = 0,
+    qmax: int = 1000000,
+    root_dir: os.path = get_project_root_dir(),
+) -> None:
+    crime_col = validate_crime_col(crime_col=crime_col, crime_descr=crime_descr, crime_df=df)
+    if crime_col == "primary_type":
+        print(f"Number of {crime_descr} Cases by description since 2001")
+        query = df.loc[(df["primary_type"] == crime_descr), "Description"].value_counts()
+        display(query[(query > qmin) & (query < qmax)])
+    make_plot_of_arrest_rate_per_period(
+        crime_descr=crime_descr,
+        crime_df=df,
+        crime_col=crime_col,
+        frequency="year",
+        end_date=end_date,
+        more_crime_descr=more_crime_descr,
+    )
+    make_plot_of_arrest_rate_per_period(
+        crime_descr=crime_descr,
+        crime_df=df,
+        crime_col=crime_col,
+        frequency="month",
+        end_date=end_date,
+        more_crime_descr=more_crime_descr,
+    )
+    more_crime_descr = more_crime_descr.upper()
+    make_heatmap_of_crime_frequency(
+        df=df,
+        crime_descr=crime_descr,
+        crime_col=crime_col,
+        x_ax="Hour",
+        y_ax="Weekday",
+        start_date=start_date,
+        end_date=end_date,
+        more_crime_descr=more_crime_descr,
+    )
+    make_heatmap_of_crime_frequency(
+        df=df,
+        crime_descr=crime_descr,
+        crime_col=crime_col,
+        x_ax="Hour",
+        y_ax="Month",
+        start_date=start_date,
+        end_date=end_date,
+        more_crime_descr=more_crime_descr,
+    )
+    make_heatmap_of_crime_frequency(
+        df=df,
+        crime_descr=crime_descr,
+        crime_col=crime_col,
+        x_ax="Month",
+        y_ax="Weekday",
+        start_date=start_date,
+        end_date=end_date,
+        more_crime_descr=more_crime_descr,
+    )
+
+    police_beats_gdf = read_raw_chicago_police_beats_geodata(root_dir=root_dir)
+    make_choropleth_of_crime_counts_per_beat(
+        df=df,
+        beats_gdf=police_beats_gdf,
+        crime_descr=crime_descr,
+        crime_col=crime_col,
+        start_date=start_date,
+        end_date=end_date,
+        scale=0.65,
+        more_crime_descr=more_crime_descr,
+    )
