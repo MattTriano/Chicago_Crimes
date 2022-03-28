@@ -1,3 +1,4 @@
+import os
 from typing import Dict, List, Union, Optional, Tuple
 
 import geopandas as gpd
@@ -20,7 +21,7 @@ def freq_selector(freq: str = "year"):
 
 def validate_crime_col(crime_col: str, crime_descr: str, crime_df: pd.DataFrame) -> str:
     VALID_CRIME_COL_VALUES = ["description", "primary_type"]
-    if crime_col not in VALID_CRIME_COL_VALUES:
+    if crime_col in VALID_CRIME_COL_VALUES:
         if crime_descr in crime_df["description"].unique():
             return "description"
         elif crime_descr in crime_df["primary_type"].unique():
@@ -213,8 +214,8 @@ def produce_visualizations(
     crime_col = validate_crime_col(crime_col=crime_col, crime_descr=crime_descr, crime_df=df)
     if crime_col == "primary_type":
         print(f"Number of {crime_descr} Cases by description since 2001")
-        query = df.loc[(df["primary_type"] == crime_descr), "Description"].value_counts()
-        display(query[(query > qmin) & (query < qmax)])
+        query = df.loc[(df["primary_type"] == crime_descr), "description"].value_counts()
+        print(query[(query > qmin) & (query < qmax)])
     make_plot_of_arrest_rate_per_period(
         crime_descr=crime_descr,
         crime_df=df,
