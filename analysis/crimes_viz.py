@@ -16,6 +16,16 @@ def freq_selector(freq: str = "year"):
         return "Y"
 
 
+def validate_crime_col(crime_col: str, crime_df: pd.DataFrame) -> str:
+    VALID_CRIME_COL_VALUES = ["description", "primary_type"]
+    if crime_col not in VALID_CRIME_COL_VALUES:
+        if crime_descr in crime_df["description"].unique():
+            return "description"
+        elif crime_descr in crime_df["primary_type"].unique():
+            return "primary_type"
+    return ValueError
+
+
 def make_plot_of_arrest_rate_per_period(
     crime_descr: str,
     crime_df: pd.DataFrame,
@@ -29,13 +39,7 @@ def make_plot_of_arrest_rate_per_period(
 ) -> None:
     label_descr = crime_descr.title()
 
-    VALID_CRIME_COL_VALUES = ["description", "primary_type"]
-    if crime_col not in VALID_CRIME_COL_VALUES:
-        if crime_descr in crime_df["description"].unique():
-            crime_col = "description"
-        elif crime_descr in crime_df["primary_type"].unique():
-            crime_col = "primary_type"
-
+    crime_col = validate_crime_col(crime_col=crime_col, crime_df=crime_df)
     if isinstance(crime_descr, list):
         df = crime_df.loc[
             (crime_df[crime_col].isin(crime_descr))
@@ -92,6 +96,7 @@ def make_choropleth_of_crime_counts_per_beat(
     tight: bool = True,
     title_fs: Optional = None,
 ) -> None:
+    crime_col = validate_crime_col(crime_col=crime_col, crime_df=df)
     df = df.loc[
         (df["date"] >= start_date)
         & (df["date"] <= end_date)
@@ -154,6 +159,7 @@ def make_heatmap_of_crime_frequency(
     fig_width: float = 14,
     force_tall_xy: bool = False,
 ) -> None:
+    crime_col = validate_crime_col(crime_col=crime_col, crime_df=df)
     if not force_tall_xy:
         if df[x_ax].nunique() < df[y_ax].nunique():
             temp_ax = x_ax
