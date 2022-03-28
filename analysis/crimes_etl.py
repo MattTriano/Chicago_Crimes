@@ -17,6 +17,7 @@ from utils import (
     make_api_call_for_socrata_csv_data,
     get_number_of_results_for_socrata_query,
     typeset_datetime_column,
+    typeset_ordered_categorical_feature,
 )
 
 
@@ -50,6 +51,9 @@ def standardize_categorical_integer_column_values(df: pd.DataFrame, col_name: st
 
 def transform_chicago_crimes_data(crimes_df: pd.DataFrame) -> gpd.GeoDataFrame:
     crimes_df.columns = [col.lower().replace(" ", "_") for col in crimes_df.columns]
+    crimes_df = drop_columns(
+        df=crimes_df, columns_to_drop=["x_coordinate", "y_coordinate", "location"]
+    )
     crimes_df = make_point_geometry(df=crimes_df, long_col="longitude", lat_col="latitude")
     crimes_gdf = gpd.GeoDataFrame(crimes_df)
     crimes_gdf = transform_chicago_crimes_date_columns(crimes_df=crimes_gdf)
@@ -58,6 +62,7 @@ def transform_chicago_crimes_data(crimes_df: pd.DataFrame) -> gpd.GeoDataFrame:
     crimes_gdf = engineer_day_of_week_feature(df=crimes_gdf, date_col="date")
     crimes_gdf = engineer_week_of_year_feature(df=crimes_gdf, date_col="date")
     crimes_gdf = engineer_day_of_year_feature(df=crimes_gdf, date_col="date")
+    crimes_gdf["year"] = typeset_ordered_categorical_feature(series=crimes_gdf["year"])
     crimes_gdf = standardize_categorical_integer_column_values(df=crimes_gdf, col_name="district")
     crimes_gdf = standardize_categorical_integer_column_values(df=crimes_gdf, col_name="ward")
     crimes_gdf = standardize_categorical_integer_column_values(
@@ -71,11 +76,7 @@ def transform_chicago_crimes_data(crimes_df: pd.DataFrame) -> gpd.GeoDataFrame:
             "description",
             "location_description",
             "fbi_code",
-            "year",
         ],
-    )
-    crimes_gdf = drop_columns(
-        df=crimes_gdf, columns_to_drop=["x_coordinate", "y_coordinate", "location"]
     )
     return crimes_gdf
 
@@ -125,4 +126,7 @@ def get_chicago_crimes_data_since_latest_record(
         df_parts.append(make_api_call_for_socrata_csv_data(api_call))
     recent_crimes_df = pd.concat(df_parts)
     recent_crimes_df = recent_crimes_df.reset_index(drop=True)
+    recent_crimes_df = transform_chicago_crimes_date_columns(
+        crimes_df=recent_crimes_df, dt_format="%Y-%m-%dT%H:%M:%S.000"
+    )
     return recent_crimes_df

@@ -132,6 +132,14 @@ def coerce_simple_category_columns(df: pd.DataFrame, category_columns: List[str]
     return df
 
 
+def typeset_ordered_categorical_feature(series: pd.Series) -> pd.Series:
+    series = series.copy()
+    series_categories = list(series.unique())
+    series_categories.sort()
+    series = series.astype(CategoricalDtype(categories=series_categories, ordered=True))
+    return series
+
+
 def get_number_of_results_for_socrata_query(
     filter_str: str, api_call_base: str, count_col: str = "id"
 ) -> int:
