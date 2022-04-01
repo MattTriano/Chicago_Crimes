@@ -60,7 +60,9 @@ def make_point_geometry(df: pd.DataFrame, long_col: str, lat_col: str) -> pd.Ser
     return df
 
 
-def typeset_datetime_column(dt_series: pd.Series, dt_format: Optional[str]) -> pd.Series:
+def typeset_datetime_column(
+    dt_series: pd.Series, dt_format: Optional[str]
+) -> pd.Series:
     dt_series = dt_series.copy()
     if not is_datetime64_any_dtype(dt_series):
         if dt_format is not None:
@@ -70,51 +72,73 @@ def typeset_datetime_column(dt_series: pd.Series, dt_format: Optional[str]) -> p
     return dt_series
 
 
-def engineer_hour_of_day_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
-    df[f"{label}Hour"] = df[date_col].dt.hour.astype(str).str.zfill(2)
+def engineer_hour_of_day_feature(
+    df: pd.DataFrame, date_col: str, label: str = ""
+) -> pd.DataFrame:
+    df[f"{label}hour"] = df[date_col].dt.hour.astype(str).str.zfill(2)
     hours = [str(i).zfill(2) for i in range(0, 24)]
     hour_categories = CategoricalDtype(categories=hours, ordered=True)
-    df[f"{label}Hour"] = df[f"{label}Hour"].astype(hour_categories)
+    df[f"{label}hour"] = df[f"{label}hour"].astype(hour_categories)
     return df
 
 
-def engineer_day_of_week_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
-    df[f"{label}Weekday"] = df[date_col].dt.dayofweek
-    weekday_map = {0: "MON", 1: "TUE", 2: "WED", 3: "THUR", 4: "FRI", 5: "SAT", 6: "SUN"}
+def engineer_day_of_week_feature(
+    df: pd.DataFrame, date_col: str, label: str = ""
+) -> pd.DataFrame:
+    df[f"{label}weekday"] = df[date_col].dt.dayofweek
+    weekday_map = {
+        0: "MON",
+        1: "TUE",
+        2: "WED",
+        3: "THUR",
+        4: "FRI",
+        5: "SAT",
+        6: "SUN",
+    }
     weekdays = list(weekday_map.values())
     weekday_categories = CategoricalDtype(categories=weekdays, ordered=True)
-    df[f"{label}Weekday"] = df[f"{label}Weekday"].map(weekday_map).astype(weekday_categories)
+    df[f"{label}weekday"] = (
+        df[f"{label}weekday"].map(weekday_map).astype(weekday_categories)
+    )
     return df
 
 
-def engineer_day_of_year_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
-    df[f"{label}Day"] = df[date_col].dt.dayofyear
+def engineer_day_of_year_feature(
+    df: pd.DataFrame, date_col: str, label: str = ""
+) -> pd.DataFrame:
+    df[f"{label}day"] = df[date_col].dt.dayofyear
     days = [i for i in range(1, 367)]
     day_categories = CategoricalDtype(categories=days, ordered=True)
-    df[f"{label}Day"] = df[f"{label}Day"].astype(day_categories)
+    df[f"{label}day"] = df[f"{label}day"].astype(day_categories)
     return df
 
 
-def engineer_week_of_year_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
-    df[f"{label}Week"] = df[date_col].dt.isocalendar().week
+def engineer_week_of_year_feature(
+    df: pd.DataFrame, date_col: str, label: str = ""
+) -> pd.DataFrame:
+    df[f"{label}week"] = df[date_col].dt.isocalendar().week
     weeks = [i for i in range(1, 54)]
     week_categories = CategoricalDtype(categories=weeks, ordered=True)
-    df[f"{label}Week"] = df[f"{label}Week"].astype(week_categories)
+    df[f"{label}week"] = df[f"{label}week"].astype(week_categories)
     return df
 
 
 def engineer_month_of_year_feature(
     df: pd.DataFrame, date_col: str, label: str = ""
 ) -> pd.DataFrame:
-    df[f"{label}Month"] = df[date_col].dt.month.astype(str).str.zfill(2)
+    df[f"{label}month"] = df[date_col].dt.month.astype(str).str.zfill(2)
     months = [str(i).zfill(2) for i in range(1, 13)]
     month_categories = CategoricalDtype(categories=months, ordered=True)
-    df[f"{label}Month"] = df[f"{label}Month"].astype(month_categories)
+    df[f"{label}month"] = df[f"{label}month"].astype(month_categories)
     return df
 
 
-def standardize_categorical_integer_column_values(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
-    df[col_name] = df[col_name].astype("Int16").astype("string").str.zfill(2).astype("category")
+def standardize_categorical_integer_column_values(
+    df: pd.DataFrame, col_name: str
+) -> pd.DataFrame:
+    df[col_name] = (
+        df[col_name].astype("Int16").astype("string").str.zfill(2).astype("category")
+    )
     return df
 
 
@@ -126,7 +150,9 @@ def drop_columns(df: pd.DataFrame, columns_to_drop: List) -> pd.DataFrame:
     return df
 
 
-def coerce_simple_category_columns(df: pd.DataFrame, category_columns: List[str]) -> pd.DataFrame:
+def typeset_simple_category_columns(
+    df: pd.DataFrame, category_columns: List[str]
+) -> pd.DataFrame:
     for category_column in category_columns:
         df[category_column] = df[category_column].astype("category")
     return df
@@ -162,13 +188,16 @@ def make_api_call_for_socrata_csv_data(api_call: str) -> pd.DataFrame:
     else:
         return requests.HTTPError
 
-def read_raw_chicago_police_beats_geodata(root_dir: os.path = get_project_root_dir()) -> gpd.GeoDataFrame:
+
+def read_raw_chicago_police_beats_geodata(
+    root_dir: os.path = get_project_root_dir(),
+) -> gpd.GeoDataFrame:
     police_beats_gdf = extract_file_from_url(
         file_path=os.path.join(root_dir, "data_raw", "Chicago_police_beats.geojson"),
         url="https://data.cityofchicago.org/api/geospatial/aerh-rz74?method=export&format=GeoJSON",
         data_format="geojson",
         force_repull=False,
-        return_df=True
+        return_df=True,
     )
     police_beats_gdf["beat_num"] = police_beats_gdf["beat_num"].astype("int64")
     return police_beats_gdf
