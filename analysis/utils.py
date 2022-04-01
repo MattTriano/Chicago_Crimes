@@ -60,9 +60,7 @@ def make_point_geometry(df: pd.DataFrame, long_col: str, lat_col: str) -> pd.Ser
     return df
 
 
-def typeset_datetime_column(
-    dt_series: pd.Series, dt_format: Optional[str]
-) -> pd.Series:
+def typeset_datetime_column(dt_series: pd.Series, dt_format: Optional[str]) -> pd.Series:
     dt_series = dt_series.copy()
     if not is_datetime64_any_dtype(dt_series):
         if dt_format is not None:
@@ -72,9 +70,7 @@ def typeset_datetime_column(
     return dt_series
 
 
-def engineer_hour_of_day_feature(
-    df: pd.DataFrame, date_col: str, label: str = ""
-) -> pd.DataFrame:
+def engineer_hour_of_day_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
     df[f"{label}hour"] = df[date_col].dt.hour.astype(str).str.zfill(2)
     hours = [str(i).zfill(2) for i in range(0, 24)]
     hour_categories = CategoricalDtype(categories=hours, ordered=True)
@@ -82,9 +78,7 @@ def engineer_hour_of_day_feature(
     return df
 
 
-def engineer_day_of_week_feature(
-    df: pd.DataFrame, date_col: str, label: str = ""
-) -> pd.DataFrame:
+def engineer_day_of_week_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
     df[f"{label}weekday"] = df[date_col].dt.dayofweek
     weekday_map = {
         0: "MON",
@@ -97,15 +91,11 @@ def engineer_day_of_week_feature(
     }
     weekdays = list(weekday_map.values())
     weekday_categories = CategoricalDtype(categories=weekdays, ordered=True)
-    df[f"{label}weekday"] = (
-        df[f"{label}weekday"].map(weekday_map).astype(weekday_categories)
-    )
+    df[f"{label}weekday"] = df[f"{label}weekday"].map(weekday_map).astype(weekday_categories)
     return df
 
 
-def engineer_day_of_year_feature(
-    df: pd.DataFrame, date_col: str, label: str = ""
-) -> pd.DataFrame:
+def engineer_day_of_year_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
     df[f"{label}day"] = df[date_col].dt.dayofyear
     days = [i for i in range(1, 367)]
     day_categories = CategoricalDtype(categories=days, ordered=True)
@@ -113,9 +103,7 @@ def engineer_day_of_year_feature(
     return df
 
 
-def engineer_week_of_year_feature(
-    df: pd.DataFrame, date_col: str, label: str = ""
-) -> pd.DataFrame:
+def engineer_week_of_year_feature(df: pd.DataFrame, date_col: str, label: str = "") -> pd.DataFrame:
     df[f"{label}week"] = df[date_col].dt.isocalendar().week
     weeks = [i for i in range(1, 54)]
     week_categories = CategoricalDtype(categories=weeks, ordered=True)
@@ -133,15 +121,6 @@ def engineer_month_of_year_feature(
     return df
 
 
-def standardize_categorical_integer_column_values(
-    df: pd.DataFrame, col_name: str
-) -> pd.DataFrame:
-    df[col_name] = (
-        df[col_name].astype("Int16").astype("string").str.zfill(2).astype("category")
-    )
-    return df
-
-
 def drop_columns(df: pd.DataFrame, columns_to_drop: List) -> pd.DataFrame:
     assert all(
         [col in df.columns for col in columns_to_drop]
@@ -150,9 +129,17 @@ def drop_columns(df: pd.DataFrame, columns_to_drop: List) -> pd.DataFrame:
     return df
 
 
-def typeset_simple_category_columns(
-    df: pd.DataFrame, category_columns: List[str]
-) -> pd.DataFrame:
+def standardize_mistakenly_int_parsed_categorical_series(
+    series: pd.Series, zerofill: Optional[int] = None
+) -> pd.Series:
+    if zerofill is not None:
+        series = series.astype("Int64").astype("string").str.zfill(zerofill).astype("category")
+    else:
+        series = series.astype("Int64").astype("string").astype("category")
+    return series
+
+
+def typeset_simple_category_columns(df: pd.DataFrame, category_columns: List[str]) -> pd.DataFrame:
     for category_column in category_columns:
         df[category_column] = df[category_column].astype("category")
     return df
