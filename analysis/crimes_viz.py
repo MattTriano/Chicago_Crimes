@@ -153,8 +153,8 @@ def make_heatmap_of_crime_frequency(
     df: pd.DataFrame,
     crime_descr: str,
     crime_col: str = "primary_type",
-    x_ax: str = "Month",
-    y_ax: str = "Weekday",
+    x_ax: str = "month",
+    y_ax: str = "weekday",
     more_crime_descr: str = "",
     start_date: str = "2001-01-01",
     end_date: str = "today",
@@ -180,7 +180,12 @@ def make_heatmap_of_crime_frequency(
 
     fig, ax = plt.subplots(figsize=figsize)
     ax = sns.heatmap(
-        tmp_counts, ax=ax, annot=False, fmt="d", cmap=cmap, cbar_kws={"aspect": 10, "pad": 0.02}
+        tmp_counts,
+        ax=ax,
+        annot=False,
+        fmt="d",
+        cmap=cmap,
+        cbar_kws={"aspect": 10, "pad": 0.02},
     )
     ax.tick_params(rotation=0, labelsize=fig_width)
     cbar = ax.collections[0].colorbar
@@ -237,8 +242,8 @@ def produce_visualizations(
         df=df,
         crime_descr=crime_descr,
         crime_col=crime_col,
-        x_ax="Hour",
-        y_ax="Weekday",
+        x_ax="hour",
+        y_ax="weekday",
         start_date=start_date,
         end_date=end_date,
         more_crime_descr=more_crime_descr,
@@ -247,8 +252,8 @@ def produce_visualizations(
         df=df,
         crime_descr=crime_descr,
         crime_col=crime_col,
-        x_ax="Hour",
-        y_ax="Month",
+        x_ax="hour",
+        y_ax="month",
         start_date=start_date,
         end_date=end_date,
         more_crime_descr=more_crime_descr,
@@ -257,8 +262,8 @@ def produce_visualizations(
         df=df,
         crime_descr=crime_descr,
         crime_col=crime_col,
-        x_ax="Month",
-        y_ax="Weekday",
+        x_ax="month",
+        y_ax="weekday",
         start_date=start_date,
         end_date=end_date,
         more_crime_descr=more_crime_descr,

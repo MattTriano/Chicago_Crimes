@@ -13,11 +13,12 @@ from utils import (
     engineer_week_of_year_feature,
     engineer_month_of_year_feature,
     drop_columns,
-    coerce_simple_category_columns,
+    typeset_simple_category_columns,
     make_api_call_for_socrata_csv_data,
     get_number_of_results_for_socrata_query,
     typeset_datetime_column,
     typeset_ordered_categorical_feature,
+    standardize_mistakenly_int_parsed_categorical_series,
 )
 
 
@@ -44,11 +45,6 @@ def transform_chicago_crimes_date_columns(
     return crimes_df
 
 
-def standardize_categorical_integer_column_values(df: pd.DataFrame, col_name: str) -> pd.DataFrame:
-    df[col_name] = df[col_name].astype("Int16").astype("string").str.zfill(2).astype("category")
-    return df
-
-
 def transform_chicago_crimes_data(crimes_df: pd.DataFrame) -> gpd.GeoDataFrame:
     crimes_df.columns = [col.lower().replace(" ", "_") for col in crimes_df.columns]
     crimes_df = drop_columns(
@@ -63,12 +59,16 @@ def transform_chicago_crimes_data(crimes_df: pd.DataFrame) -> gpd.GeoDataFrame:
     crimes_gdf = engineer_week_of_year_feature(df=crimes_gdf, date_col="date")
     crimes_gdf = engineer_day_of_year_feature(df=crimes_gdf, date_col="date")
     crimes_gdf["year"] = typeset_ordered_categorical_feature(series=crimes_gdf["year"])
-    crimes_gdf = standardize_categorical_integer_column_values(df=crimes_gdf, col_name="district")
-    crimes_gdf = standardize_categorical_integer_column_values(df=crimes_gdf, col_name="ward")
-    crimes_gdf = standardize_categorical_integer_column_values(
-        df=crimes_gdf, col_name="community_area"
+    crimes_gdf["district"] = standardize_mistakenly_int_parsed_categorical_series(
+        series=crimes_gdf["district"], zerofill=2
     )
-    crimes_gdf = coerce_simple_category_columns(
+    crimes_gdf["ward"] = standardize_mistakenly_int_parsed_categorical_series(
+        series=crimes_gdf["ward"], zerofill=2
+    )
+    crimes_gdf["community_area"] = standardize_mistakenly_int_parsed_categorical_series(
+        series=crimes_gdf["community_area"], zerofill=2
+    )
+    crimes_gdf = typeset_simple_category_columns(
         df=crimes_gdf,
         category_columns=[
             "iucr",
