@@ -44,7 +44,7 @@ def load_raw_chicago_homicide_and_shooting_data(
 
 def preprocess_homicide_and_nfs_data(df: pd.DataFrame) -> pd.DataFrame:
     df = standardize_column_names(df=df)
-    df = df.drop(columns=["location"])
+    df = df.drop(columns=["location"], errors="ignore")
     return df
 
 
