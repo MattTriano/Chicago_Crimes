@@ -64,7 +64,10 @@ def typeset_datetime_column(dt_series: pd.Series, dt_format: Optional[str]) -> p
     dt_series = dt_series.copy()
     if not is_datetime64_any_dtype(dt_series):
         if dt_format is not None:
-            dt_series = pd.to_datetime(dt_series, format=dt_format)
+            try:
+                dt_series = pd.to_datetime(dt_series, format=dt_format)
+            except:
+                dt_series = pd.to_datetime(dt_series)
         else:
             dt_series = pd.to_datetime(dt_series)
     return dt_series
@@ -222,3 +225,34 @@ def read_raw_chicago_police_beats_geodata(
     )
     police_beats_gdf["beat_num"] = police_beats_gdf["beat_num"].astype("int64")
     return police_beats_gdf
+
+
+def get_latest_update_date(
+    df: pd.DataFrame, update_col: str, dt_format: str = "%Y-%m-%dT%H:%M:%S.000"
+) -> str:
+    latest_update = df[update_col].max()
+    latest_update_str = latest_update.strftime(format=dt_format)
+    return latest_update_str
+
+
+def get_socrata_table_records_updated_or_added_after_given_date(
+    table_id: str, socrata_domain: str, update_col: str, last_pull_date: str, count_col: str
+) -> pd.DataFrame:
+    api_call_base = f"https://{socrata_domain}/resource/{table_id}.csv"
+    filter_str = f"$where={update_col}>'{last_pull_date}'"
+    result_count = get_number_of_results_for_socrata_query(
+        filter_str=filter_str, api_call_base=api_call_base, count_col=count_col
+    )
+    df_parts = []
+    for i in range((result_count // 1000) + 1):
+        offset = i * 1000
+        if result_count < (offset + 1000):
+            limit = result_count % 1000
+        else:
+            limit = 1000
+        pagination_str = f"$limit={limit}&$offset={offset}&$order={count_col}"
+        api_call = f"{api_call_base}?{filter_str}&{pagination_str}"
+        df_parts.append(make_api_call_for_socrata_csv_data(api_call))
+    recent_updates_df = pd.concat(df_parts)
+    recent_updates_df = recent_updates_df.reset_index(drop=True)
+    return recent_updates_df
