@@ -48,7 +48,7 @@ def preprocess_homicide_and_nfs_data(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def typreset_homicide_and_nfs_data(df: pd.DataFrame) -> pd.DataFrame:
+def typeset_homicide_and_nfs_data(df: pd.DataFrame) -> pd.DataFrame:
     df = transform_date_columns(df=df, date_cols=["date", "updated"])
     df["zip_code"] = standardize_mistakenly_int_parsed_categorical_series(series=df["zip_code"])
     df["area"] = standardize_mistakenly_int_parsed_categorical_series(series=df["area"])
@@ -108,7 +108,7 @@ def engineer_basic_date_features_for_homicide_and_nfs_data(df: pd.DataFrame) -> 
 
 def transform_homicide_and_nfs_data(df: pd.DataFrame) -> pd.DataFrame:
     df = preprocess_homicide_and_nfs_data(df=df)
-    df = typreset_homicide_and_nfs_data(df=df)
+    df = typeset_homicide_and_nfs_data(df=df)
     df = engineer_basic_date_features_for_homicide_and_nfs_data(df=df)
     return df
 
