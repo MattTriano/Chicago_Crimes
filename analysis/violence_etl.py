@@ -111,3 +111,24 @@ def transform_homicide_and_nfs_data(df: pd.DataFrame) -> pd.DataFrame:
     df = typreset_homicide_and_nfs_data(df=df)
     df = engineer_basic_date_features_for_homicide_and_nfs_data(df=df)
     return df
+
+
+def load_clean_chicago_homicides_and_nonfatal_shootings_data(
+    root_dir: os.path = get_project_root_dir(),
+    force_repull: bool = False,
+    force_remake: bool = False,
+) -> gpd.GeoDataFrame:
+    file_name = "Violence_Reduction_-_Victims_of_Homicides_and_Non-Fatal_Shootings"
+    clean_file_path = os.path.join(root_dir, "data_clean", f"{file_name}.parquet.gzip")
+    if not os.path.isfile(clean_file_path) or force_remake:
+        df = transform_homicide_and_nfs_data(
+            df=load_raw_chicago_homicide_and_shooting_data(
+                root_dir=root_dir, force_repull=force_repull
+            )
+        )
+        df.to_parquet(clean_file_path, compression="gzip")
+    else:
+        df = pd.read_parquet(clean_file_path)
+    gdf = make_point_geometry(df=df, long_col="longitude", lat_col="latitude")
+    gdf = gpd.GeoDataFrame(gdf, crs="EPSG:4326")
+    return gdf
