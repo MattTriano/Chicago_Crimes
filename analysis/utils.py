@@ -129,6 +129,11 @@ def drop_columns(df: pd.DataFrame, columns_to_drop: List) -> pd.DataFrame:
     return df
 
 
+def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    df.columns = ["_".join(col.lower().split(" ")) for col in df.columns]
+    return df
+
+
 def standardize_mistakenly_int_parsed_categorical_series(
     series: pd.Series, zerofill: Optional[int] = None
 ) -> pd.Series:
@@ -145,12 +150,41 @@ def typeset_simple_category_columns(df: pd.DataFrame, category_columns: List[str
     return df
 
 
+def typeset_ordered_categorical_column(
+    series: pd.Series, ordered_category_values: List
+) -> pd.Series:
+    series = series.astype(CategoricalDtype(categories=ordered_category_values, ordered=True))
+    return series
+
+
 def typeset_ordered_categorical_feature(series: pd.Series) -> pd.Series:
     series = series.copy()
     series_categories = list(series.unique())
     series_categories.sort()
     series = series.astype(CategoricalDtype(categories=series_categories, ordered=True))
     return series
+
+
+def transform_date_columns(
+    df: pd.DataFrame, date_cols: List[str], dt_format: str = "%m/%d/%Y %I:%M:%S %p"
+) -> pd.DataFrame:
+    for date_col in date_cols:
+        df[date_col] = typeset_datetime_column(dt_series=df[date_col], dt_format=dt_format)
+    return df
+
+
+def map_column_to_boolean_values(
+    df: pd.DataFrame, input_col: str, true_values: List[str], output_col: Optional = None
+) -> pd.DataFrame:
+    true_mask = df[input_col].isin(true_values)
+    if output_col is None:
+        output_col = input_col
+    if output_col in df.columns:
+        if df[output_col].dtypes == bool:
+            return df
+    df[output_col] = False
+    df.loc[true_mask, output_col] = True
+    return df
 
 
 def get_number_of_results_for_socrata_query(
