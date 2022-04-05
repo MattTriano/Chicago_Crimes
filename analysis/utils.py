@@ -1,3 +1,4 @@
+from datetime import datetime
 import io
 import os
 import re
@@ -66,7 +67,7 @@ def geospatialize_df_with_point_geometries(
     df = df.copy()
     gdf = make_point_geometry(df=df, long_col=long_col, lat_col=lat_col)
     gdf = gpd.GeoDataFrame(gdf, crs=crs)
-    return
+    return gdf
 
 
 def typeset_datetime_column(dt_series: pd.Series, dt_format: Optional[str]) -> pd.Series:
@@ -265,3 +266,23 @@ def get_socrata_table_records_updated_or_added_after_given_date(
     recent_updates_df = pd.concat(df_parts)
     recent_updates_df = recent_updates_df.reset_index(drop=True)
     return recent_updates_df
+
+
+def save_fresh_records_to_file(
+    record_df: pd.DataFrame,
+    file_name: str,
+    dataset_dir: str,
+    record_type: str,
+    root_dir: os.path = get_project_root_dir(),
+    force_repull: bool = False,
+) -> None:
+    assert record_type in ["updated", "new"]
+    clean_pull_dir = os.path.join(root_dir, "data_clean", dataset_dir)
+    os.makedirs(clean_pull_dir, exist_ok=True)
+
+    today_str = datetime.today().strftime("%Y_%m_%d")
+    record_pull_file_path = os.path.join(
+        clean_pull_dir, f"{file_name}_{record_type}_records_pulled_{today_str}.parquet.gzip"
+    )
+    if (record_pull_file_path not in os.listdir(clean_pull_dir)) or force_repull:
+        record_df.to_parquet(record_pull_file_path, compression="gzip")
