@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 
 import pandas as pd
@@ -117,9 +118,12 @@ def load_clean_chicago_homicides_and_nonfatal_shootings_data(
     root_dir: os.path = get_project_root_dir(),
     force_repull: bool = False,
     force_remake: bool = False,
-) -> gpd.GeoDataFrame:
+) -> pd.DataFrame:
     file_name = "Violence_Reduction_-_Victims_of_Homicides_and_Non-Fatal_Shootings"
-    clean_file_path = os.path.join(root_dir, "data_clean", f"{file_name}.parquet.gzip")
+    dataset_dir = "homicides_and_shootings"
+    clean_dataset_dir = os.path.join(root_dir, "data_clean", dataset_dir)
+    os.makedirs(clean_dataset_dir, exist_ok=True)
+    clean_file_path = os.path.join(clean_dataset_dir, f"{file_name}.parquet.gzip")
     if not os.path.isfile(clean_file_path) or force_remake:
         df = transform_homicide_and_nfs_data(
             df=load_raw_chicago_homicide_and_shooting_data(
@@ -127,8 +131,30 @@ def load_clean_chicago_homicides_and_nonfatal_shootings_data(
             )
         )
         df.to_parquet(clean_file_path, compression="gzip")
+        if force_repull:
+            today_str = datetime.today().strftime("%Y_%m_%d")
+            repull_file_name = f"{file_name}_full_pull_from_{today_str}.parquet.gzip"
+            clean_repull_file_path = os.path.join(
+                os.path.dirname(clean_file_path), repull_file_name
+            )
+            df.to_parquet(clean_repull_file_path, compression="gzip")
     else:
         df = pd.read_parquet(clean_file_path)
-    gdf = make_point_geometry(df=df, long_col="longitude", lat_col="latitude")
-    gdf = gpd.GeoDataFrame(gdf, crs="EPSG:4326")
-    return gdf
+    return df
+
+
+def split_new_and_updated_homicide_and_shooting_records_and_save_them_to_file(
+    running_df: pd.DataFrame,
+    fresh_df: pd.DataFrame,
+    root_dir: os.path = get_project_root_dir(),
+    force_repull: bool = False,
+) -> None:
+    split_new_and_updated_records_and_save_them_to_file(
+        id_col="unique_id",
+        running_df=running_df,
+        fresh_df=fresh_df,
+        file_name="Violence_Reduction_-_Victims_of_Homicides_and_Non-Fatal_Shootings",
+        dataset_dir="homicides_and_shootings",
+        root_dir=root_dir,
+        force_repull=force_repull,
+    )
