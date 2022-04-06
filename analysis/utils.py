@@ -286,3 +286,34 @@ def save_fresh_records_to_file(
     )
     if (record_pull_file_path not in os.listdir(clean_pull_dir)) or force_repull:
         record_df.to_parquet(record_pull_file_path, compression="gzip")
+
+
+def split_new_and_updated_records_and_save_them_to_file(
+    id_col: str,
+    running_df: pd.DataFrame,
+    fresh_df: pd.DataFrame,
+    file_name: str,
+    dataset_dir: str,
+    root_dir: os.path = get_project_root_dir(),
+    force_repull: bool = False,
+) -> None:
+    updates_prior_record_mask = fresh_df[id_col].isin(running_df[id_col])
+    updated_records_df = fresh_df.loc[updates_prior_record_mask].copy()
+    new_records_df = fresh_df.loc[~updates_prior_record_mask].copy()
+
+    save_fresh_records_to_file(
+        record_df=new_records_df,
+        file_name=file_name,
+        dataset_dir=dataset_dir,
+        record_type="new",
+        root_dir=root_dir,
+        force_repull=force_repull,
+    )
+    save_fresh_records_to_file(
+        record_df=updated_records_df,
+        file_name=file_name,
+        dataset_dir=dataset_dir,
+        record_type="updated",
+        root_dir=root_dir,
+        force_repull=force_repull,
+    )
