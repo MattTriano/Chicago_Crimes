@@ -1,3 +1,4 @@
+from datetime import datetime
 import io
 import os
 import re
@@ -60,11 +61,23 @@ def make_point_geometry(df: pd.DataFrame, long_col: str, lat_col: str) -> pd.Ser
     return df
 
 
+def geospatialize_df_with_point_geometries(
+    df: pd.DataFrame, long_col: str, lat_col: str, crs: str = "EPSG:4326"
+) -> gpd.GeoDataFrame:
+    df = df.copy()
+    gdf = make_point_geometry(df=df, long_col=long_col, lat_col=lat_col)
+    gdf = gpd.GeoDataFrame(gdf, crs=crs)
+    return gdf
+
+
 def typeset_datetime_column(dt_series: pd.Series, dt_format: Optional[str]) -> pd.Series:
     dt_series = dt_series.copy()
     if not is_datetime64_any_dtype(dt_series):
         if dt_format is not None:
-            dt_series = pd.to_datetime(dt_series, format=dt_format)
+            try:
+                dt_series = pd.to_datetime(dt_series, format=dt_format)
+            except:
+                dt_series = pd.to_datetime(dt_series)
         else:
             dt_series = pd.to_datetime(dt_series)
     return dt_series
@@ -129,6 +142,11 @@ def drop_columns(df: pd.DataFrame, columns_to_drop: List) -> pd.DataFrame:
     return df
 
 
+def standardize_column_names(df: pd.DataFrame) -> pd.DataFrame:
+    df.columns = ["_".join(col.lower().split(" ")) for col in df.columns]
+    return df
+
+
 def standardize_mistakenly_int_parsed_categorical_series(
     series: pd.Series, zerofill: Optional[int] = None
 ) -> pd.Series:
@@ -145,12 +163,41 @@ def typeset_simple_category_columns(df: pd.DataFrame, category_columns: List[str
     return df
 
 
+def typeset_ordered_categorical_column(
+    series: pd.Series, ordered_category_values: List
+) -> pd.Series:
+    series = series.astype(CategoricalDtype(categories=ordered_category_values, ordered=True))
+    return series
+
+
 def typeset_ordered_categorical_feature(series: pd.Series) -> pd.Series:
     series = series.copy()
     series_categories = list(series.unique())
     series_categories.sort()
     series = series.astype(CategoricalDtype(categories=series_categories, ordered=True))
     return series
+
+
+def transform_date_columns(
+    df: pd.DataFrame, date_cols: List[str], dt_format: str = "%m/%d/%Y %I:%M:%S %p"
+) -> pd.DataFrame:
+    for date_col in date_cols:
+        df[date_col] = typeset_datetime_column(dt_series=df[date_col], dt_format=dt_format)
+    return df
+
+
+def map_column_to_boolean_values(
+    df: pd.DataFrame, input_col: str, true_values: List[str], output_col: Optional = None
+) -> pd.DataFrame:
+    true_mask = df[input_col].isin(true_values)
+    if output_col is None:
+        output_col = input_col
+    if output_col in df.columns:
+        if df[output_col].dtypes == bool:
+            return df
+    df[output_col] = False
+    df.loc[true_mask, output_col] = True
+    return df
 
 
 def get_number_of_results_for_socrata_query(
@@ -188,3 +235,85 @@ def read_raw_chicago_police_beats_geodata(
     )
     police_beats_gdf["beat_num"] = police_beats_gdf["beat_num"].astype("int64")
     return police_beats_gdf
+
+
+def get_latest_update_date(
+    df: pd.DataFrame, update_col: str, dt_format: str = "%Y-%m-%dT%H:%M:%S.000"
+) -> str:
+    latest_update = df[update_col].max()
+    latest_update_str = latest_update.strftime(format=dt_format)
+    return latest_update_str
+
+
+def get_socrata_table_records_updated_or_added_after_given_date(
+    table_id: str, socrata_domain: str, update_col: str, last_pull_date: str, count_col: str
+) -> pd.DataFrame:
+    api_call_base = f"https://{socrata_domain}/resource/{table_id}.csv"
+    filter_str = f"$where={update_col}>'{last_pull_date}'"
+    result_count = get_number_of_results_for_socrata_query(
+        filter_str=filter_str, api_call_base=api_call_base, count_col=count_col
+    )
+    df_parts = []
+    for i in range((result_count // 1000) + 1):
+        offset = i * 1000
+        if result_count < (offset + 1000):
+            limit = result_count % 1000
+        else:
+            limit = 1000
+        pagination_str = f"$limit={limit}&$offset={offset}&$order={count_col}"
+        api_call = f"{api_call_base}?{filter_str}&{pagination_str}"
+        df_parts.append(make_api_call_for_socrata_csv_data(api_call))
+    recent_updates_df = pd.concat(df_parts)
+    recent_updates_df = recent_updates_df.reset_index(drop=True)
+    return recent_updates_df
+
+
+def save_fresh_records_to_file(
+    record_df: pd.DataFrame,
+    file_name: str,
+    dataset_dir: str,
+    record_type: str,
+    root_dir: os.path = get_project_root_dir(),
+    force_repull: bool = False,
+) -> None:
+    assert record_type in ["updated", "new"]
+    clean_pull_dir = os.path.join(root_dir, "data_clean", dataset_dir)
+    os.makedirs(clean_pull_dir, exist_ok=True)
+
+    today_str = datetime.today().strftime("%Y_%m_%d")
+    record_pull_file_path = os.path.join(
+        clean_pull_dir, f"{file_name}_{record_type}_records_pulled_{today_str}.parquet.gzip"
+    )
+    if (record_pull_file_path not in os.listdir(clean_pull_dir)) or force_repull:
+        record_df.to_parquet(record_pull_file_path, compression="gzip")
+
+
+def split_new_and_updated_records_and_save_them_to_file(
+    id_col: str,
+    running_df: pd.DataFrame,
+    fresh_df: pd.DataFrame,
+    file_name: str,
+    dataset_dir: str,
+    root_dir: os.path = get_project_root_dir(),
+    force_repull: bool = False,
+) -> None:
+    updates_prior_record_mask = fresh_df[id_col].isin(running_df[id_col])
+    updated_records_df = fresh_df.loc[updates_prior_record_mask].copy()
+    new_records_df = fresh_df.loc[~updates_prior_record_mask].copy()
+
+    save_fresh_records_to_file(
+        record_df=new_records_df,
+        file_name=file_name,
+        dataset_dir=dataset_dir,
+        record_type="new",
+        root_dir=root_dir,
+        force_repull=force_repull,
+    )
+    save_fresh_records_to_file(
+        record_df=updated_records_df,
+        file_name=file_name,
+        dataset_dir=dataset_dir,
+        record_type="updated",
+        root_dir=root_dir,
+        force_repull=force_repull,
+    )
